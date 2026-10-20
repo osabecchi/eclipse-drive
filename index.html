@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ECLIPSE DRIVE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#07060d">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ECLIPSE">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Share+Tech+Mono&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<style>
+/* Layout: one portrait play-field column, menus float over it as glass panels. */
+:root {
+  --void: #07060d; --ink: #ece8f4; --mute: #9a93b0; --line: rgba(236,232,244,0.14);
+  --sol: #ffc861; --sol-deep: #ff9a2e; --luna: #5fd4ff; --luna-deep: #0f1a4c;
+  --panel: rgba(10,8,22,0.78); --danger: #ff6a7a;
+  --f-disp: Michroma, "Segoe UI", system-ui, sans-serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+  --f-num: "Share Tech Mono", ui-monospace, Menlo, Consolas, monospace;
+  --field-l: 0px; --field-w: 100vw; --field-b: 0px;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; background: var(--void); color: var(--ink); overflow: hidden; overscroll-behavior: none; }
+body { font-family: var(--f-body); -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+#cv { position: fixed; inset: 0; display: block; }
+button { font-family: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--luna); outline-offset: 2px; }
+
+#ui { position: fixed; top: 0; bottom: 0; left: var(--field-l); width: var(--field-w); pointer-events: none; }
+.scr { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto;
+  padding-block: max(14px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }
+.scr[hidden] { display: none !important; }
+.panel { width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 6px; padding: 18px 16px; box-sizing: border-box; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); scrollbar-width: thin; }
+.panel h2 { font-family: var(--f-disp); font-size: 15px; letter-spacing: 0.18em; margin: 0 0 2px; font-weight: 400; }
+.panel .jp { color: var(--mute); font-size: 12px; margin: 0 0 14px; }
+
+/* title */
+#scr-title { justify-content: flex-end; }
+.logo { position: absolute; top: 25%; left: 0; right: 0; text-align: center; transform: translateY(-50%); pointer-events: none; }
+.logo h1 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: clamp(26px, 9vw, 40px); letter-spacing: 0.16em; line-height: 1.15;
+  background: linear-gradient(90deg, var(--sol) 0%, #fff 48%, var(--luna) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 30px rgba(255,200,120,0.15); text-wrap: balance; }
+.logo p { margin: 8px 0 0; font-size: 12px; letter-spacing: 0.5em; color: var(--mute); }
+.menu { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 7px; margin-bottom: 4%; }
+.mbtn { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 11px 16px; background: rgba(10,8,22,0.62);
+  border: 1px solid var(--line); border-radius: 4px; font-size: 15px; font-weight: 700; text-align: left; transition: background .15s, border-color .15s, transform .1s; }
+.mbtn small { font-family: var(--f-disp); font-size: 9px; letter-spacing: 0.2em; color: var(--mute); font-weight: 400; }
+.mbtn:hover, .mbtn:focus-visible { background: rgba(40,30,70,0.8); border-color: rgba(255,255,255,0.4); }
+.mbtn:active { transform: scale(0.98); }
+.mbtn.primary { background: linear-gradient(90deg, rgba(255,170,70,0.28), rgba(80,180,255,0.24)); border-color: rgba(255,255,255,0.45); font-size: 17px; padding: 14px 16px; }
+.mbtn[disabled] { opacity: 0.38; cursor: not-allowed; }
+.foot { display: flex; justify-content: space-between; width: 100%; max-width: 320px; font-family: var(--f-num); font-size: 13px; color: var(--mute); }
+.foot b { color: var(--ink); font-weight: 400; }
+.dust { color: #bfe8ff; }
+.dust::before { content: "✦ "; color: #9fdcff; }
+
+/* generic bits */
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.chip { padding: 9px 6px; border: 1px solid var(--line); border-radius: 4px; background: rgba(255,255,255,0.03); text-align: center; font-size: 12px; }
+.chip b { display: block; font-family: var(--f-disp); font-size: 10px; letter-spacing: 0.12em; font-weight: 400; margin-bottom: 2px; }
+.chip.on { border-color: var(--sol); background: rgba(255,200,97,0.12); }
+.chip[disabled] { opacity: 0.35; }
+.label { font-family: var(--f-disp); font-size: 9px; letter-spacing: 0.22em; color: var(--mute); margin: 14px 0 6px; }
+.note { font-size: 12px; color: var(--mute); line-height: 1.6; margin: 6px 0 0; }
+.actions { display: flex; gap: 8px; margin-top: 16px; }
+.actions .mbtn { flex: 1; justify-content: center; text-align: center; }
+.tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.tabs button { flex: 1; padding: 8px 4px; font-size: 12px; background: transparent; border: none; border-bottom: 2px solid var(--line); color: var(--mute); }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--sol); }
+
+/* ship cards */
+.ships { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ship { padding: 8px 6px 9px; border: 1px solid var(--line); border-radius: 4px; background: rgba(255,255,255,0.03); text-align: center; position: relative; }
+.ship canvas { width: 54px; height: 54px; display: block; margin: 0 auto 4px; }
+.ship b { font-family: var(--f-disp); font-weight: 400; font-size: 9px; letter-spacing: 0.1em; display: block; }
+.ship span { font-size: 11px; color: var(--mute); }
+.ship.on { border-color: var(--sol); background: rgba(255,200,97,0.1); }
+.ship.locked canvas { opacity: 0.3; }
+.ship .price { font-family: var(--f-num); font-size: 12px; color: #bfe8ff; }
+.shipdesc { font-size: 12px; line-height: 1.6; margin: 8px 0 0; min-height: 3.2em; }
+.bars { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 11px; color: var(--mute); margin-top: 6px; align-items: center; }
+.bar { height: 5px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--sol), var(--luna)); }
+
+/* upgrades */
+.upg { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.upg h3 { margin: 0; font-size: 14px; }
+.upg h3 small { font-family: var(--f-disp); font-size: 8px; letter-spacing: 0.18em; color: var(--mute); margin-left: 6px; font-weight: 400; }
+.upg p { margin: 0; font-size: 11px; color: var(--mute); grid-column: 1; }
+.pips { display: flex; gap: 3px; grid-column: 1; }
+.pips i { width: 16px; height: 4px; background: rgba(255,255,255,0.12); }
+.pips i.on { background: var(--sol); }
+.buy { grid-row: 1 / span 3; grid-column: 2; min-width: 82px; padding: 9px 8px; border: 1px solid rgba(159,220,255,0.5); border-radius: 4px; background: rgba(95,212,255,0.08); font-family: var(--f-num); font-size: 13px; }
+.buy small { display: block; font-family: var(--f-body); font-size: 10px; color: var(--mute); }
+.buy[disabled] { opacity: 0.4; }
+
+/* records */
+table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+td, th { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+th { font-family: var(--f-disp); font-size: 8px; letter-spacing: 0.15em; color: var(--mute); font-weight: 400; }
+td.num { font-family: var(--f-num); text-align: right; font-size: 13px; }
+.rk { font-family: var(--f-disp); font-size: 12px; text-align: center; }
+.ach { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ach b { font-size: 13px; }
+.ach span { font-size: 11px; color: var(--mute); grid-column: 1; }
+.ach em { font-style: normal; font-family: var(--f-num); font-size: 12px; color: #bfe8ff; grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.ach.got b::before { content: "◆ "; color: var(--sol); }
+.ach:not(.got) { opacity: 0.55; }
+.stats { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: 12px; }
+.stats b { font-family: var(--f-num); font-weight: 400; font-size: 13px; text-align: right; }
+
+/* how to */
+.how { font-size: 13px; line-height: 1.7; }
+.how h3 { font-size: 13px; margin: 14px 0 4px; color: var(--sol); }
+.how p { margin: 0 0 6px; }
+.how .sol { color: var(--sol); font-weight: 700; }
+.how .luna { color: var(--luna); font-weight: 700; }
+kbd { font-family: var(--f-num); font-size: 11px; padding: 1px 5px; border: 1px solid var(--line); border-radius: 3px; background: rgba(255,255,255,0.05); }
+
+/* settings */
+.set { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px 10px; align-items: center; font-size: 13px; }
+input[type=range] { width: 100%; accent-color: var(--sol); }
+.toggle { padding: 7px; border: 1px solid var(--line); border-radius: 4px; background: rgba(255,255,255,0.03); font-size: 12px; }
+.toggle.on { border-color: var(--sol); }
+
+/* result */
+.res-score { font-family: var(--f-num); font-size: 34px; text-align: center; margin: 6px 0 2px; }
+.res-tag { text-align: center; font-family: var(--f-disp); font-size: 10px; letter-spacing: 0.2em; color: var(--sol); min-height: 14px; }
+.ranks { display: flex; gap: 6px; justify-content: center; margin: 8px 0; font-family: var(--f-disp); font-size: 15px; }
+
+/* touch controls */
+#touch { position: fixed; left: 0; right: 0; bottom: 0; pointer-events: none; }
+#touch[hidden] { display: none !important; }
+.tbtn { position: fixed; pointer-events: auto; width: 78px; height: 78px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35);
+  background: rgba(10,8,22,0.35); display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; font-size: 15px;
+  touch-action: none; bottom: calc(max(12px, (var(--field-b) - 78px) / 2) + env(safe-area-inset-bottom, 0px)); }
+.tbtn small { font-family: var(--f-disp); font-size: 7px; letter-spacing: 0.1em; font-weight: 400; opacity: 0.8; }
+#tSwitch { left: calc(max(10px, var(--field-l) + 10px) + env(safe-area-inset-left, 0px)); }
+#tBurst { right: calc(max(10px, var(--field-l) + 10px) + env(safe-area-inset-right, 0px)); }
+#tSwitch.sol { border-color: var(--sol); box-shadow: 0 0 18px rgba(255,180,70,0.35); }
+#tSwitch.luna { border-color: var(--luna); box-shadow: 0 0 18px rgba(80,170,255,0.35); }
+#tBurst.ready { border-color: #fff; box-shadow: 0 0 22px rgba(255,255,255,0.4); }
+.tbtn.press { transform: scale(0.92); background: rgba(255,255,255,0.15); }
+#tPause { position: fixed; pointer-events: auto; left: 50%; transform: translateX(-50%); bottom: calc(max(12px, (var(--field-b) - 40px) / 2) + env(safe-area-inset-bottom, 0px)); width: 40px; height: 40px;
+  border-radius: 4px; border: 1px solid var(--line); background: rgba(10,8,22,0.4); font-family: var(--f-num); font-size: 13px; }
+#hint { position: fixed; left: 0; right: 0; top: 46%; text-align: center; pointer-events: none; font-size: 13px; color: #fff; text-shadow: 0 1px 4px #000; transition: opacity .6s; }
+
+#toasts { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 10; }
+.toast { background: rgba(12,10,26,0.92); border: 1px solid rgba(255,200,97,0.6); border-radius: 4px; padding: 8px 14px; font-size: 12px; animation: tin .3s ease-out; max-width: 86vw; }
+.toast b { color: var(--sol); margin-right: 8px; font-family: var(--f-disp); font-size: 9px; letter-spacing: 0.15em; font-weight: 400; }
+.toast em { font-style: normal; color: #bfe8ff; margin-left: 8px; font-family: var(--f-num); }
+@keyframes tin { from { transform: translateY(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.confirm { margin-top: 10px; padding: 10px; border: 1px solid var(--danger); border-radius: 4px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } .mbtn { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="ui">
+  <section class="scr" id="scr-title">
+    <div class="logo"><h1>ECLIPSE<br>DRIVE</h1><p>イクリプス・ドライブ</p></div>
+    <div class="menu">
+      <button class="mbtn primary" id="bStart">出撃 <small>START</small></button>
+      <button class="mbtn" id="bPractice">ステージ練習 <small>PRACTICE</small></button>
+      <button class="mbtn" id="bRush">ボスラッシュ <small id="rushTag">BOSS RUSH</small></button>
+      <button class="mbtn" id="bHangar">格納庫 <small>HANGAR</small></button>
+      <div class="row" style="gap:7px">
+        <button class="mbtn" id="bRecords" style="flex:1">記録 <small>RECORDS</small></button>
+        <button class="mbtn" id="bHow" style="flex:1">遊び方 <small>HOW</small></button>
+      </div>
+      <button class="mbtn" id="bSettings">設定 <small>SETTINGS</small></button>
+    </div>
+    <div class="foot"><span class="dust" id="tDust">0</span><span>BEST <b id="tBest">0</b></span></div>
+  </section>
+
+  <section class="scr" id="scr-sortie" hidden>
+    <div class="panel">
+      <h2 id="sortieTitle">SORTIE</h2><p class="jp" id="sortieJp">出撃準備</p>
+      <div class="label">SHIP · 機体</div>
+      <div class="ships" id="sortieShips"></div>
+      <p class="shipdesc" id="sortieShipDesc"></p>
+      <div class="label">DIFFICULTY · 難易度</div>
+      <div class="seg" id="sortieDiff"></div>
+      <p class="note" id="sortieDiffDesc"></p>
+      <div id="stageSel" hidden>
+        <div class="label">STAGE · ステージ</div>
+        <div class="seg" id="sortieStage" style="grid-template-columns:repeat(5,1fr)"></div>
+      </div>
+      <div class="actions">
+        <button class="mbtn" data-back>戻る</button>
+        <button class="mbtn primary" id="bGo">出撃</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="scr" id="scr-hangar" hidden>
+    <div class="panel">
+      <h2>HANGAR</h2><p class="jp">格納庫 — 星屑で機体と強化を手に入れる　<span class="dust" id="hDust">0</span></p>
+      <div class="tabs"><button id="hTabShips" class="on">機体</button><button id="hTabUpg">強化</button></div>
+      <div id="hShips"></div>
+      <div id="hUpg" hidden></div>
+      <div class="actions"><button class="mbtn" data-back>戻る</button></div>
+    </div>
+  </section>
+
+  <section class="scr" id="scr-records" hidden>
+    <div class="panel">
+      <h2>RECORDS</h2><p class="jp">記録</p>
+      <div class="tabs"><button class="on" data-rt="score">スコア</button><button data-rt="rank">ランク</button><button data-rt="ach">実績</button><button data-rt="stats">統計</button></div>
+      <div id="recBody"></div>
+      <div class="actions"><button class="mbtn" data-back>戻る</button></div>
+    </div>
+  </section>
+
+  <section class="scr" id="scr-how" hidden>
+    <div class="panel how">
+      <h2>HOW TO PLAY</h2><p class="jp">遊び方</p>
+      <h3>極性 — 光と影</h3>
+      <p>自機は <span class="sol">SOL（光・橙）</span> と <span class="luna">LUNA（影・青）</span> の2つの極性を切り替えられる。</p>
+      <p><b>自機と同じ色の弾は当たらず、吸収してエネルギーになる。</b>違う色の弾に触れるとミス。弾幕の色を見て、瞬時に切り替えよう。</p>
+      <h3>攻撃</h3>
+      <p>ショットは自動で連射。<b>自機と違う色の敵には2倍ダメージ</b>。ただし同じ色の敵を倒すと、吸収できる「反撃弾」が飛んでくる。</p>
+      <h3>バースト</h3>
+      <p>エネルギー10ごとに強力な攻撃を放てる。ゲージ満タンの FULL BURST は威力アップ。</p>
+      <h3>チェイン</h3>
+      <p>敵を <b>同じ色で3体連続</b> 撃破すると CHAIN が1つ伸び、ボーナスが倍々に増える（最大25,600点）。違う色が混ざると途切れる。敵は3体ずつの色の組で現れる。</p>
+      <h3>操作</h3>
+      <p>PC：<kbd>矢印</kbd>/<kbd>WASD</kbd> 移動　<kbd>Z</kbd>/<kbd>Space</kbd> 極性反転　<kbd>X</kbd> バースト　<kbd>Shift</kbd> 低速　<kbd>Esc</kbd> ポーズ</p>
+      <p>スマホ：画面をドラッグして移動（指の動いた分だけ自機が動く）。左下で反転、右下でバースト。2本目の指でタップしても反転。</p>
+      <p>ゲームパッド：スティック移動、A 反転、B バースト、RB 低速。</p>
+      <h3>やりこみ</h3>
+      <p>拾った星屑とスコアで新しい機体や強化を購入。全ステージにランク（S〜C）、21の実績、3つの難易度、ボスラッシュ。</p>
+      <div class="actions"><button class="mbtn" data-back>戻る</button></div>
+    </div>
+  </section>
+
+  <section class="scr" id="scr-settings" hidden>
+    <div class="panel">
+      <h2>SETTINGS</h2><p class="jp">設定</p>
+      <div class="set">
+        <label for="sBgm">BGM 音量</label><input type="range" id="sBgm" min="0" max="1" step="0.05">
+        <label for="sSfx">効果音 音量</label><input type="range" id="sSfx" min="0" max="1" step="0.05">
+        <label for="sSens">タッチ感度</label><input type="range" id="sSens" min="0.6" max="2.2" step="0.05">
+        <span>画面の揺れ</span><button class="toggle" id="sShake"></button>
+      </div>
+      <div class="label">DATA</div>
+      <button class="mbtn" id="sReset" style="width:100%">セーブデータを消去</button>
+      <div class="confirm" id="sResetConfirm" hidden>
+        すべての記録・星屑・機体が消えます。本当に消去しますか？
+        <div class="actions"><button class="mbtn" id="sResetNo">やめる</button><button class="mbtn" id="sResetYes" style="border-color:var(--danger)">消去する</button></div>
+      </div>
+      <div class="actions"><button class="mbtn" data-back>戻る</button></div>
+    </div>
+  </section>
+
+  <section class="scr" id="scr-pause" hidden>
+    <div class="panel" style="max-width:300px">
+      <h2>PAUSE</h2><p class="jp">一時停止</p>
+      <div class="menu" style="margin:0;max-width:none">
+        <button class="mbtn primary" id="pResume">再開 <small>RESUME</small></button>
+        <button class="mbtn" id="pHow">遊び方 <small>HOW</small></button>
+        <button class="mbtn" id="pRetire">リタイア <small>RETIRE</small></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="scr" id="scr-result" hidden>
+    <div class="panel">
+      <h2 id="rTitle">RESULT</h2><p class="jp" id="rSub"></p>
+      <div class="res-score" id="rScore">0</div>
+      <div class="res-tag" id="rTag"></div>
+      <div class="ranks" id="rRanks"></div>
+      <div class="stats" id="rStats"></div>
+      <div id="rAch"></div>
+      <div class="actions">
+        <button class="mbtn" id="rTitleBtn">タイトル</button>
+        <button class="mbtn primary" id="rRetry">もう一度</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="touch" hidden>
+  <button class="tbtn sol" id="tSwitch">反転<small>SWITCH</small></button>
+  <button class="tbtn" id="tBurst">BURST<small id="tBurstN">—</small></button>
+  <button id="tPause" aria-label="ポーズ">II</button>
+</div>
+<div id="hint" hidden>ドラッグで移動 ・ 左下で反転</div>
+<div id="toasts"></div>
+
+<script src="js/core.js"></script>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/bosses.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
